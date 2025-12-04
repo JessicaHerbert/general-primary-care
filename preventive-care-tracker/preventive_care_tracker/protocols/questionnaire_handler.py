@@ -51,14 +51,15 @@ class PreventiveCareQuestionnaireHandler(BaseProtocol):
             return []
 
         log.info(f"Preventive Care questionnaire handler processing command {command_id}")
-        log.info(f"Command data: {command.data}")
+        log.info(f"Command data keys: {list(command.data.keys())}")
 
         # Parse the questionnaire responses from command.data
-        # command.data structure is like: {"HYPERTENSION_DATE": "12/04/2025", ...}
+        # command.data structure has question-XXX keys where XXX is the question pk
+        # We need to map question codes to screening names using the questionnaire metadata
         screening_dates = {}
 
-        # Map of our question codes to screening names
-        question_code_map = {
+        # Map of question codes to screening names
+        code_to_screening = {
             "HYPERTENSION_DATE": "hypertension",
             "DEPRESSION_DATE": "depression",
             "ALCOHOL_DATE": "alcohol",
@@ -70,15 +71,27 @@ class PreventiveCareQuestionnaireHandler(BaseProtocol):
             "STATIN_DATE": "statin"
         }
 
-        # Extract dates from command.data
-        for question_code, screening_name in question_code_map.items():
-            if question_code in command.data:
-                date_str = command.data[question_code]
-                if date_str:
-                    parsed_date = self._parse_date_string(date_str)
-                    if parsed_date:
-                        screening_dates[screening_name] = parsed_date
-                        log.info(f"Parsed {screening_name} screening date: {parsed_date}")
+        # Get questionnaire metadata to map question IDs to codes
+        if 'questionnaire' in command.data and 'extra' in command.data['questionnaire']:
+            questions = command.data['questionnaire']['extra'].get('questions', [])
+
+            # Build mapping from question-XXX to screening name
+            for question in questions:
+                question_pk = question.get('pk')
+                question_code = question.get('coding', {}).get('code')
+
+                if question_pk and question_code and question_code in code_to_screening:
+                    question_key = f"question-{question_pk}"
+                    screening_name = code_to_screening[question_code]
+
+                    # Get the response for this question
+                    if question_key in command.data:
+                        date_str = command.data[question_key]
+                        if date_str:
+                            parsed_date = self._parse_date_string(date_str)
+                            if parsed_date:
+                                screening_dates[screening_name] = parsed_date
+                                log.info(f"Parsed {screening_name} screening date: {parsed_date} from {date_str}")
 
         if screening_dates:
             log.info(f"Successfully parsed {len(screening_dates)} screening dates from questionnaire")
