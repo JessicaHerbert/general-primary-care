@@ -1,86 +1,86 @@
 name: Preventive Care Screening Dates
 form_type: QUES
-code_system: CANVAS
+code_system: INTERNAL
 code: PREVENTIVE_CARE_DATES
 can_originate_in_charting: TRUE
 prologue: Enter the dates of previous preventive care screenings if known. Leave blank if not applicable or unknown.
 questions:
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: HYPERTENSION_DATE
     content: Hypertension Screening Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
         code: HYPERTENSION_DATE_TXT
 
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: DEPRESSION_DATE
     content: Depression Screening Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
         code: DEPRESSION_DATE_TXT
 
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: ALCOHOL_DATE
     content: Alcohol Use Screening Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
         code: ALCOHOL_DATE_TXT
 
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: COLORECTAL_DATE
     content: Colorectal Cancer Screening Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
         code: COLORECTAL_DATE_TXT
 
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: BREAST_DATE
     content: Breast Cancer Screening Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
         code: BREAST_DATE_TXT
 
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: CERVICAL_DATE
     content: Cervical Cancer Screening Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
         code: CERVICAL_DATE_TXT
 
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: DIABETES_DATE
     content: Diabetes Screening Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
         code: DIABETES_DATE_TXT
 
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: LUNG_DATE
     content: Lung Cancer Screening Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
         code: LUNG_DATE_TXT
 
-  - code_system: CANVAS
+  - code_system: INTERNAL
     code: STATIN_DATE
     content: Statin/CVD Prevention Date (MM/DD/YYYY)
-    responses_code_system: CANVAS
+    responses_code_system: INTERNAL
     responses_type: TXT
     responses:
       - name: TXT
