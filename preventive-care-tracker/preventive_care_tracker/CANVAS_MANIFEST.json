@@ -1,13 +1,22 @@
 {
     "sdk_version": "0.1.4",
-    "plugin_version": "0.0.1",
+    "plugin_version": "1.1.0",
     "name": "preventive_care_tracker",
-    "description": "Edit the description in CANVAS_MANIFEST.json",
+    "description": "Track and manage preventive care screenings based on USPSTF guidelines",
     "components": {
         "protocols": [
             {
-                "class": "preventive_care_tracker.protocols.my_protocol:Protocol",
-                "description": "A protocol that does xyz..."
+                "class": "preventive_care_tracker.protocols.questionnaire_handler:PreventiveCareQuestionnaireHandler",
+                "description": "Handles manual screening date entries from questionnaire submissions"
+            }
+        ],
+        "applications": [
+            {
+                "class": "preventive_care_tracker.applications.preventive_care_app:PreventiveCareTrackerApp",
+                "name": "Preventive Care Tracker",
+                "description": "Track and identify gaps in preventive care screenings",
+                "icon": "./care.png",
+                "scope": "patient_specific"
             }
         ],
         "commands": [],
