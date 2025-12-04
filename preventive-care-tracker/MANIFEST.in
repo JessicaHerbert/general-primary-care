@@ -1,0 +1,3 @@
+include preventive_care_tracker/*.png
+include preventive_care_tracker/CANVAS_MANIFEST.json
+include preventive_care_tracker/README.md
