@@ -1,6 +1,6 @@
 """Screening modules for preventive care measures."""
 
-from .base import ScreeningResult, ScreeningStatus
+from .screening_base import ScreeningResult, ScreeningStatus
 from .colorectal import ColorectalScreening
 from .breast import BreastScreening
 from .hypertension import HypertensionScreening

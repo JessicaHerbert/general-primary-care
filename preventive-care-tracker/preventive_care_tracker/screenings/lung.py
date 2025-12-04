@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Optional
 
-from .base import BaseScreening, get_most_recent_date, add_years
+from .screening_base import BaseScreening, get_most_recent_date, add_years
 
 
 class LungScreening(BaseScreening):
