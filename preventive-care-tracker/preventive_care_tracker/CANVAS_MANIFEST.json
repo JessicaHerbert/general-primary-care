@@ -12,7 +12,7 @@
         ],
         "applications": [
             {
-                "class": "preventive_care_tracker.applications.preventive_care_app:PreventiveCareTrackerApp",
+                "class": "preventive_care_tracker.applications.simple_preventive_care_app:PreventiveCareTrackerApp",
                 "name": "Preventive Care Tracker",
                 "description": "Track and identify gaps in preventive care screenings",
                 "icon": "care.png",
