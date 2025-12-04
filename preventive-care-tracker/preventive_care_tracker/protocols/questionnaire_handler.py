@@ -47,35 +47,20 @@ class PreventiveCareQuestionnaireHandler(BaseProtocol):
 
         # Check if this is the preventive care questionnaire
         # In a real implementation, you would check the questionnaire name/ID
-        # For now, we'll process any questionnaire submission
+        # For now, we'll just log that we received a questionnaire submission
 
-        # Get the interview (contains the responses)
-        if not hasattr(command, 'interview') or not command.interview:
-            log.warning(f"Command {command_id} has no associated interview")
-            return []
+        log.info(f"Preventive Care questionnaire handler received submission for command {command_id}")
 
-        try:
-            interview = Interview.objects.get(id=command.interview.id)
-        except Interview.DoesNotExist:
-            log.error(f"Interview not found for command {command_id}")
-            return []
-
-        # Parse responses
-        # The interview.data contains the question responses
-        # Structure: {"questions": [{"id": "...", "responses": [...]}]}
-
-        responses = self._parse_questionnaire_responses(interview)
-
-        if responses:
-            log.info(f"Processed {len(responses)} screening date entries for patient {interview.patient_id}")
-            # In a production implementation, you would:
-            # 1. Store these responses in a custom data model or observations
-            # 2. Create effects to update the patient's record
-            # 3. Possibly create a task or note for staff
+        # Note: Full questionnaire processing would require access to Interview data model
+        # which is not currently available in the Canvas SDK sandbox
+        # Future implementation would:
+        # 1. Parse questionnaire responses
+        # 2. Store screening dates as observations
+        # 3. Create effects to update patient record
 
         return []
 
-    def _parse_questionnaire_responses(self, interview: Interview) -> dict:
+    def _parse_questionnaire_responses(self, interview_data: dict) -> dict:
         """Parse questionnaire responses to extract screening dates.
 
         Args:

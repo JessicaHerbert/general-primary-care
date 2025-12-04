@@ -11,7 +11,7 @@ from canvas_sdk.v1.data.condition import Condition
 from canvas_sdk.v1.data.medication import Medication
 from logger import log
 
-from ..screenings import (
+from preventive_care_tracker.screenings import (
     ColorectalScreening,
     BreastScreening,
     HypertensionScreening,
