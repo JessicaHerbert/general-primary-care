@@ -1,0 +1,552 @@
+# Canvas Plugin Testing Guide
+
+This document provides testing patterns for Canvas plugins.
+
+## Test Data: Use Manual Mocking, NOT Factories
+
+**Do NOT use factory libraries** (factory_boy, etc.) or look for existing factories. They don't exist for Canvas plugins and you don't need them.
+
+**Always create test data manually using MagicMock:**
+
+```python
+# GOOD - manual mock, simple and direct
+mock_event = MagicMock()
+mock_event.context = {"patient": {"id": "test-123"}}
+mock_event.target.instance.blood_pressure_systolic = 150
+
+# BAD - don't do this
+from some_factory import EventFactory  # Doesn't exist
+event = EventFactory.create(patient_id="test-123")  # Won't work
+```
+
+**Why manual mocking:**
+- Canvas SDK objects are simple to mock
+- No factory setup/maintenance overhead
+- Tests are explicit about what data matters
+- MagicMock handles any attribute access automatically
+
+**Pattern: Create fixtures for common test data in conftest.py, then customize per-test:**
+
+```python
+# conftest.py
+@pytest.fixture
+def mock_event():
+    event = MagicMock()
+    event.context = {"patient": {"id": "test-patient"}}
+    return event
+
+# test_handler.py
+def test_high_bp(mock_event):
+    mock_event.target.instance.blood_pressure_systolic = 180  # Customize for this test
+    # ...
+```
+
+---
+
+## Test Setup
+
+### Directory Structure - MUST Mirror Source Code
+
+**The test directory structure MUST exactly mirror the source code structure.**
+
+```
+plugin_name/
+├── plugin_name/
+│   ├── protocols/
+│   │   ├── vitals_handler.py
+│   │   └── lab_handler.py
+│   ├── api/
+│   │   └── routes.py
+│   ├── helpers/
+│   │   └── utils.py
+│   └── CANVAS_MANIFEST.json
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py                   # Shared fixtures only
+│   ├── protocols/
+│   │   ├── __init__.py
+│   │   ├── test_vitals_handler.py    # tests vitals_handler.py
+│   │   └── test_lab_handler.py       # tests lab_handler.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── test_routes.py            # tests routes.py
+│   └── helpers/
+│       ├── __init__.py
+│       └── test_utils.py             # tests utils.py
+├── pyproject.toml
+└── README.md
+```
+
+**Rules:**
+- One test file per source file
+- Test file name = `test_` + source file name
+- Test file location mirrors source file location
+- `conftest.py` at tests root contains only shared fixtures
+
+### pyproject.toml Test Configuration
+
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v"
+
+[tool.coverage.run]
+source = ["plugin_name"]
+omit = ["tests/*", "*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+omit = ["tests/*", "*/tests/*"]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
+```
+
+**CRITICAL:** The `omit` patterns in both `[tool.coverage.run]` and `[tool.coverage.report]` ensure test files are excluded from coverage measurement. Without this, test code inflates coverage numbers.
+
+---
+
+## Mocking Patterns
+
+### Mocking Event Context
+
+```python
+import pytest
+from unittest.mock import MagicMock, patch
+
+@pytest.fixture
+def mock_event():
+    """Create a mock event with patient context."""
+    event = MagicMock()
+    event.context = {
+        "patient": {"id": "patient-123"},
+        "user": {"id": "staff-456", "type": "Staff"}
+    }
+    return event
+
+@pytest.fixture
+def mock_vitals_event(mock_event):
+    """Create a mock vitals event."""
+    mock_event.target.instance.blood_pressure_systolic = 150
+    mock_event.target.instance.blood_pressure_diastolic = 95
+    mock_event.target.instance.heart_rate = 72
+    return mock_event
+```
+
+---
+
+### Mocking Data Models
+
+```python
+@pytest.fixture
+def mock_patient():
+    """Create a mock patient."""
+    patient = MagicMock()
+    patient.id = "patient-123"
+    patient.first_name = "John"
+    patient.last_name = "Doe"
+    patient.date_of_birth = "1980-01-15"
+    return patient
+
+def test_handler_with_patient(mock_event, mock_patient):
+    with patch("canvas_sdk.v1.data.patient.Patient.objects") as mock_objects:
+        mock_objects.get.return_value = mock_patient
+
+        # Test handler logic
+        handler = MyProtocol()
+        handler.event = mock_event
+        effects = handler.compute()
+
+        # REQUIRED: Always verify mock calls
+        mock_objects.get.assert_called_once_with(id="patient-123")
+```
+
+---
+
+### CRITICAL: Always Verify Mock Calls
+
+**Every mock MUST have its calls verified.** A mock without verification is incomplete and potentially useless.
+
+```python
+# BAD - mock is set up but never verified
+def test_bad_example(mock_event, mock_patient):
+    with patch("canvas_sdk.v1.data.patient.Patient.objects") as mock_objects:
+        mock_objects.get.return_value = mock_patient
+
+        handler = MyProtocol()
+        handler.event = mock_event
+        effects = handler.compute()
+
+        assert len(effects) == 1  # Only checks output, not that mock was used correctly
+
+
+# GOOD - mock calls are verified
+def test_good_example(mock_event, mock_patient):
+    with patch("canvas_sdk.v1.data.patient.Patient.objects") as mock_objects:
+        mock_objects.get.return_value = mock_patient
+
+        handler = MyProtocol()
+        handler.event = mock_event
+        effects = handler.compute()
+
+        # Verify mock was called with expected arguments
+        mock_objects.get.assert_called_once_with(id="patient-123")
+        assert len(effects) == 1
+```
+
+**Common mock assertion methods:**
+- `mock.assert_called()` - verify called at least once
+- `mock.assert_called_once()` - verify called exactly once
+- `mock.assert_called_with(...)` - verify most recent call args
+- `mock.assert_called_once_with(...)` - verify called once with specific args
+- `mock.assert_not_called()` - verify never called
+- `mock.call_count` - check number of calls
+- `mock.call_args_list` - inspect all calls made
+
+---
+
+### Mocking Secrets
+
+```python
+@pytest.fixture
+def mock_secrets():
+    """Create mock secrets."""
+    return {
+        "API_KEY": "test-api-key-12345",
+        "WEBHOOK_SECRET": "test-webhook-secret"
+    }
+
+def test_webhook_auth(mock_secrets):
+    handler = WebhookAPI()
+    handler.secrets = mock_secrets
+
+    # Test authentication
+    credentials = MagicMock()
+    credentials.key = "test-api-key-12345"
+
+    assert handler.authenticate(credentials) is True
+```
+
+---
+
+## Testing Protocol Handlers
+
+### Basic Event Handler Test
+
+```python
+from plugin_name.protocols.handler import AlertProtocol
+
+class TestAlertProtocol:
+    def test_high_bp_creates_alert(self, mock_vitals_event):
+        """Test that high blood pressure creates a banner alert."""
+        handler = AlertProtocol()
+        handler.event = mock_vitals_event
+
+        effects = handler.compute()
+
+        assert len(effects) == 1
+        # Verify effect properties
+        effect = effects[0]
+        assert "AddBannerAlert" in str(type(effect))
+
+    def test_normal_bp_no_alert(self, mock_event):
+        """Test that normal blood pressure creates no alert."""
+        mock_event.target.instance.blood_pressure_systolic = 120
+        mock_event.target.instance.blood_pressure_diastolic = 80
+
+        handler = AlertProtocol()
+        handler.event = mock_event
+
+        effects = handler.compute()
+
+        assert len(effects) == 0
+
+    def test_missing_bp_no_alert(self, mock_event):
+        """Test graceful handling of missing vitals data."""
+        mock_event.target.instance.blood_pressure_systolic = None
+        mock_event.target.instance.blood_pressure_diastolic = None
+
+        handler = AlertProtocol()
+        handler.event = mock_event
+
+        effects = handler.compute()
+
+        assert len(effects) == 0
+
+    def test_missing_patient_id(self, mock_vitals_event):
+        """Test graceful handling of missing patient context."""
+        mock_vitals_event.context = {}
+
+        handler = AlertProtocol()
+        handler.event = mock_vitals_event
+
+        effects = handler.compute()
+
+        assert len(effects) == 0
+```
+
+---
+
+## Testing API Handlers
+
+### Authentication Tests
+
+```python
+from plugin_name.api.routes import MyAPI
+
+class TestMyAPIAuthentication:
+    def test_valid_api_key_authenticates(self, mock_secrets):
+        """Test that valid API key passes authentication."""
+        handler = MyAPI()
+        handler.secrets = mock_secrets
+
+        credentials = MagicMock()
+        credentials.key = "test-api-key-12345"
+
+        assert handler.authenticate(credentials) is True
+
+    def test_invalid_api_key_rejected(self, mock_secrets):
+        """Test that invalid API key fails authentication."""
+        handler = MyAPI()
+        handler.secrets = mock_secrets
+
+        credentials = MagicMock()
+        credentials.key = "wrong-key"
+
+        assert handler.authenticate(credentials) is False
+
+    def test_missing_api_key_rejected(self, mock_secrets):
+        """Test that missing API key fails authentication."""
+        handler = MyAPI()
+        handler.secrets = mock_secrets
+
+        credentials = MagicMock()
+        credentials.key = None
+
+        assert handler.authenticate(credentials) is False
+
+    def test_missing_secret_rejected(self):
+        """Test that unconfigured secret fails authentication."""
+        handler = MyAPI()
+        handler.secrets = {}
+
+        credentials = MagicMock()
+        credentials.key = "any-key"
+
+        assert handler.authenticate(credentials) is False
+```
+
+### Session Credential Tests
+
+```python
+class TestSessionAuthentication:
+    def test_staff_user_authenticated(self):
+        """Test that staff users pass authentication."""
+        handler = StaffOnlyAPI()
+
+        credentials = MagicMock()
+        credentials.logged_in_user = {"id": "staff-123", "type": "Staff"}
+
+        assert handler.authenticate(credentials) is True
+
+    def test_patient_user_rejected_for_staff_endpoint(self):
+        """Test that patient users are rejected from staff-only endpoints."""
+        handler = StaffOnlyAPI()
+
+        credentials = MagicMock()
+        credentials.logged_in_user = {"id": "patient-123", "type": "Patient"}
+
+        assert handler.authenticate(credentials) is False
+
+    def test_patient_accessing_own_data(self):
+        """Test that patients can access their own data."""
+        handler = PatientDataAPI()
+        handler.request = MagicMock()
+        handler.request.path_params = {"patient_id": "patient-123"}
+
+        credentials = MagicMock()
+        credentials.logged_in_user = {"id": "patient-123", "type": "Patient"}
+
+        assert handler.authenticate(credentials) is True
+
+    def test_patient_accessing_other_patient_data_rejected(self):
+        """Test that patients cannot access other patients' data."""
+        handler = PatientDataAPI()
+        handler.request = MagicMock()
+        handler.request.path_params = {"patient_id": "patient-456"}
+
+        credentials = MagicMock()
+        credentials.logged_in_user = {"id": "patient-123", "type": "Patient"}
+
+        assert handler.authenticate(credentials) is False
+```
+
+---
+
+## Coverage Checking
+
+### Running Coverage
+
+```bash
+# Basic coverage report
+uv run pytest --cov=plugin_name --cov-report=term-missing
+
+# With HTML report
+uv run pytest --cov=plugin_name --cov-report=html
+
+# With specific coverage threshold
+uv run pytest --cov=plugin_name --cov-fail-under=90
+```
+
+### Interpreting Coverage Report
+
+```
+Name                              Stmts   Miss  Cover   Missing
+---------------------------------------------------------------
+plugin_name/__init__.py               0      0   100%
+plugin_name/protocols/handler.py     45      5    89%   34-38
+plugin_name/api/routes.py            32      2    94%   67, 89
+---------------------------------------------------------------
+TOTAL                                77      7    91%
+```
+
+- **Stmts**: Total statements in file
+- **Miss**: Statements not covered by tests
+- **Cover**: Percentage of statements covered
+- **Missing**: Line numbers not covered
+
+---
+
+## Coverage Improvement Strategies
+
+### Identify Uncovered Code
+
+1. Run coverage with `--cov-report=term-missing`
+2. Look at "Missing" column for uncovered lines
+3. Prioritize error handling paths and edge cases
+
+### Common Uncovered Areas
+
+1. **Error handling branches**
+   - Test with invalid input
+   - Test with missing data
+   - Test exception scenarios
+
+2. **Conditional logic**
+   - Test both true and false branches
+   - Test boundary conditions
+
+3. **Edge cases**
+   - Empty lists/dicts
+   - None values
+   - Maximum/minimum values
+
+### Writing Tests for Uncovered Lines
+
+```python
+# If line 34-38 are uncovered and handle missing patient:
+def test_missing_patient_context(self, mock_event):
+    """Cover lines 34-38: missing patient handling."""
+    mock_event.context = {}  # No patient in context
+
+    handler = MyProtocol()
+    handler.event = mock_event
+    effects = handler.compute()
+
+    assert len(effects) == 0
+```
+
+---
+
+## Test Organization Best Practices
+
+### Group Tests by Functionality
+
+```python
+class TestAlertTriggers:
+    """Tests for alert triggering conditions."""
+
+    def test_high_systolic_triggers_alert(self): ...
+    def test_high_diastolic_triggers_alert(self): ...
+    def test_both_high_triggers_alert(self): ...
+
+class TestAlertContent:
+    """Tests for alert content and formatting."""
+
+    def test_alert_contains_bp_values(self): ...
+    def test_alert_has_correct_intent(self): ...
+
+class TestEdgeCases:
+    """Tests for edge cases and error handling."""
+
+    def test_missing_vitals(self): ...
+    def test_missing_patient(self): ...
+    def test_invalid_bp_values(self): ...
+```
+
+### Use Descriptive Test Names
+
+```python
+# Good: describes scenario and expected outcome
+def test_blood_pressure_above_180_creates_hypertensive_crisis_alert(self): ...
+
+# Bad: vague
+def test_alert(self): ...
+```
+
+### Use Fixtures for Common Setup
+
+```python
+# conftest.py
+@pytest.fixture
+def high_bp_event():
+    """Event with hypertensive crisis blood pressure."""
+    event = MagicMock()
+    event.context = {"patient": {"id": "test-patient"}}
+    event.target.instance.blood_pressure_systolic = 190
+    event.target.instance.blood_pressure_diastolic = 125
+    return event
+
+@pytest.fixture
+def normal_bp_event():
+    """Event with normal blood pressure."""
+    event = MagicMock()
+    event.context = {"patient": {"id": "test-patient"}}
+    event.target.instance.blood_pressure_systolic = 120
+    event.target.instance.blood_pressure_diastolic = 80
+    return event
+```
+
+---
+
+## Coverage Report Template
+
+When reporting coverage results:
+
+```markdown
+## Test Coverage Report: {plugin_name}
+
+**Overall Coverage:** {X}%
+**Target:** 90%
+**Status:** {PASS / NEEDS IMPROVEMENT}
+
+### File Coverage
+
+| File | Coverage | Missing Lines |
+|------|----------|---------------|
+| protocols/handler.py | 89% | 34-38 |
+| api/routes.py | 94% | 67, 89 |
+
+### Recommended Tests to Add
+
+1. **handler.py:34-38** - Missing patient context handling
+   - Add test for empty context dict
+
+2. **routes.py:67** - Error response branch
+   - Add test for invalid request body
+
+3. **routes.py:89** - Exception handling
+   - Add test that triggers exception
+```
