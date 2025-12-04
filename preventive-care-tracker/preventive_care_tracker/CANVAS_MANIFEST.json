@@ -22,7 +22,12 @@
         "commands": [],
         "content": [],
         "effects": [],
-        "views": []
+        "views": [],
+        "questionnaires": [
+            {
+                "template": "templates/preventive_care_dates.yml"
+            }
+        ]
     },
     "secrets": [],
     "tags": {},

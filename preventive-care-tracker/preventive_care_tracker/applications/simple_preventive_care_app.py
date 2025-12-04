@@ -288,7 +288,6 @@ class PreventiveCareTrackerApp(Application):
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">{screening["name"]}</td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">{status_icon}</td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">{screening["last_date"]}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">{screening["grade"]}</td>
             </tr>
             """
 
@@ -308,7 +307,6 @@ class PreventiveCareTrackerApp(Application):
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Screening</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Status</th>
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Last Date</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Grade</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -317,7 +315,7 @@ class PreventiveCareTrackerApp(Application):
             </table>
 
             <p style="margin-top: 20px; font-size: 12px; color: #666;">
-                <em>Note: Grades are USPSTF recommendation grades. This is a simplified version - full risk assessment and smoking history checks coming soon.</em>
+                <em>Note: This is a simplified version - full risk assessment and smoking history checks coming soon.</em>
             </p>
         </div>
         """
