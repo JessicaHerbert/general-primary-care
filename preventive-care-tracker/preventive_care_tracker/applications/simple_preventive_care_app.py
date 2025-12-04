@@ -45,7 +45,7 @@ class PreventiveCareTrackerApp(Application):
             sex = patient.sex_at_birth if hasattr(patient, 'sex_at_birth') else None
 
             # Evaluate screenings
-            screenings = self._evaluate_screenings(patient_id, age, sex)
+            screenings = self._evaluate_screenings(patient, age, sex)
 
             # Render HTML
             html_content = self._render_html(patient, age, screenings)
@@ -65,13 +65,13 @@ class PreventiveCareTrackerApp(Application):
                 content=error_html
             ).apply()
 
-    def _evaluate_screenings(self, patient_id: str, age: Optional[int], sex: Optional[str]) -> list:
+    def _evaluate_screenings(self, patient: Patient, age: Optional[int], sex: Optional[str]) -> list:
         """Evaluate all preventive care screenings for this patient."""
         screenings = []
 
         # 1. Hypertension Screening (adults 18+)
         if age and age >= 18:
-            last_bp = self._get_last_observation(patient_id, ["8480-6", "8462-4", "85354-9"])
+            last_bp = self._get_last_observation(patient, ["8480-6", "8462-4", "85354-9"])
             screenings.append({
                 "name": "Hypertension Screening",
                 "status": "up-to-date" if last_bp and self._within_days(last_bp, 365) else "overdue",
@@ -90,7 +90,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 2. Depression Screening (adults 18+)
         if age and age >= 18:
-            last_phq = self._get_last_observation(patient_id, ["55758-7", "44249-1", "73831-0"])
+            last_phq = self._get_last_observation(patient, ["55758-7", "44249-1", "73831-0"])
             screenings.append({
                 "name": "Depression Screening",
                 "status": "up-to-date" if last_phq and self._within_days(last_phq, 365) else "overdue",
@@ -109,7 +109,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 3. Alcohol Use Screening (adults 18+)
         if age and age >= 18:
-            last_audit = self._get_last_observation(patient_id, ["72109-2", "75626-2"])
+            last_audit = self._get_last_observation(patient, ["72109-2", "75626-2"])
             screenings.append({
                 "name": "Alcohol Use Screening",
                 "status": "up-to-date" if last_audit and self._within_days(last_audit, 365) else "overdue",
@@ -128,7 +128,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 4. Colorectal Cancer Screening (ages 45-75)
         if age and 45 <= age <= 75:
-            last_colo = self._get_last_observation(patient_id, ["29771-3", "56490-6", "57905-2"])
+            last_colo = self._get_last_observation(patient, ["29771-3", "56490-6", "57905-2"])
             screenings.append({
                 "name": "Colorectal Cancer Screening",
                 "status": "up-to-date" if last_colo and self._within_days(last_colo, 365) else "overdue",
@@ -147,7 +147,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 5. Breast Cancer Screening (women 40-74)
         if age and 40 <= age <= 74 and sex and sex.lower() == "female":
-            last_mammo = self._get_last_imaging(patient_id, "mammogr")
+            last_mammo = self._get_last_imaging(patient, "mammogr")
             screenings.append({
                 "name": "Breast Cancer Screening",
                 "status": "up-to-date" if last_mammo and self._within_days(last_mammo, 730) else "overdue",
@@ -166,7 +166,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 6. Cervical Cancer Screening (women 21-65)
         if age and 21 <= age <= 65 and sex and sex.lower() == "female":
-            last_pap = self._get_last_observation(patient_id, ["19762-4", "10524-7", "21440-3"])
+            last_pap = self._get_last_observation(patient, ["19762-4", "10524-7", "21440-3"])
             screenings.append({
                 "name": "Cervical Cancer Screening",
                 "status": "up-to-date" if last_pap and self._within_days(last_pap, 1095) else "overdue",
@@ -185,7 +185,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 7. Diabetes Screening (ages 35-70) - simplified without BMI check
         if age and 35 <= age <= 70:
-            last_a1c = self._get_last_observation(patient_id, ["4548-4", "1558-6", "2345-7"])
+            last_a1c = self._get_last_observation(patient, ["4548-4", "1558-6", "2345-7"])
             screenings.append({
                 "name": "Diabetes Screening",
                 "status": "up-to-date" if last_a1c and self._within_days(last_a1c, 1095) else "overdue",
@@ -224,10 +224,10 @@ class PreventiveCareTrackerApp(Application):
 
         return screenings
 
-    def _get_last_observation(self, patient_id: str, loinc_codes: list) -> Optional[date]:
+    def _get_last_observation(self, patient: Patient, loinc_codes: list) -> Optional[date]:
         """Get the most recent observation date for any of the given LOINC codes."""
         try:
-            observations = Observation.objects.filter(patient=patient_id).order_by('-effective_datetime')
+            observations = Observation.objects.filter(patient=patient).order_by('-effective_datetime')
             for obs in observations:
                 if hasattr(obs, 'codings'):
                     for coding in obs.codings.all():
@@ -239,10 +239,10 @@ class PreventiveCareTrackerApp(Application):
             log.error(f"Error getting observations: {str(e)}")
             return None
 
-    def _get_last_imaging(self, patient_id: str, imaging_type: str) -> Optional[date]:
+    def _get_last_imaging(self, patient: Patient, imaging_type: str) -> Optional[date]:
         """Get the most recent imaging report date."""
         try:
-            reports = ImagingReport.objects.filter(patient=patient_id).order_by('-result_date')
+            reports = ImagingReport.objects.filter(patient=patient).order_by('-result_date')
             for report in reports:
                 if report.name and imaging_type.lower() in report.name.lower():
                     if report.result_date:
@@ -262,10 +262,17 @@ class PreventiveCareTrackerApp(Application):
 
     def _render_html(self, patient: Patient, age: Optional[int], screenings: list) -> str:
         """Render the HTML interface."""
-        # Count status
-        up_to_date = sum(1 for s in screenings if s["status"] == "up-to-date")
-        overdue = sum(1 for s in screenings if s["status"] == "overdue")
-        not_applicable = sum(1 for s in screenings if s["status"] == "not-applicable")
+        # Count status - manual counting since sum() is not allowed in sandbox
+        up_to_date = 0
+        overdue = 0
+        not_applicable = 0
+        for s in screenings:
+            if s["status"] == "up-to-date":
+                up_to_date += 1
+            elif s["status"] == "overdue":
+                overdue += 1
+            elif s["status"] == "not-applicable":
+                not_applicable += 1
 
         # Generate table rows
         rows = ""
