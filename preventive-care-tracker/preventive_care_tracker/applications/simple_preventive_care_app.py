@@ -262,21 +262,21 @@ class PreventiveCareTrackerApp(Application):
 
     def _render_html(self, patient: Patient, age: Optional[int], screenings: list) -> str:
         """Render the HTML interface."""
+        # Filter out not-applicable screenings
+        applicable_screenings = [s for s in screenings if s["applicable"]]
+
         # Count status - manual counting since sum() is not allowed in sandbox
         up_to_date = 0
         overdue = 0
-        not_applicable = 0
-        for s in screenings:
+        for s in applicable_screenings:
             if s["status"] == "up-to-date":
                 up_to_date += 1
             elif s["status"] == "overdue":
                 overdue += 1
-            elif s["status"] == "not-applicable":
-                not_applicable += 1
 
         # Generate table rows
         rows = ""
-        for screening in screenings:
+        for screening in applicable_screenings:
             status_icon = {
                 "up-to-date": "✓",
                 "overdue": "⚠️",
@@ -298,7 +298,7 @@ class PreventiveCareTrackerApp(Application):
 
             <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 8px;">
                 <h3>Summary</h3>
-                <p>✓ Up-to-date: {up_to_date} | ⚠️ Overdue: {overdue} | — Not Applicable: {not_applicable}</p>
+                <p>✓ Up-to-date: {up_to_date} | ⚠️ Overdue: {overdue}</p>
             </div>
 
             <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">

@@ -45,18 +45,47 @@ class PreventiveCareQuestionnaireHandler(BaseProtocol):
             log.error(f"Command {command_id} not found")
             return []
 
-        # Check if this is the preventive care questionnaire
-        # In a real implementation, you would check the questionnaire name/ID
-        # For now, we'll just log that we received a questionnaire submission
+        # Check if this is the preventive care questionnaire by checking command.data
+        if not command.data:
+            log.info(f"Command {command_id} has no data")
+            return []
 
-        log.info(f"Preventive Care questionnaire handler received submission for command {command_id}")
+        log.info(f"Preventive Care questionnaire handler processing command {command_id}")
+        log.info(f"Command data: {command.data}")
 
-        # Note: Full questionnaire processing would require access to Interview data model
-        # which is not currently available in the Canvas SDK sandbox
-        # Future implementation would:
-        # 1. Parse questionnaire responses
-        # 2. Store screening dates as observations
-        # 3. Create effects to update patient record
+        # Parse the questionnaire responses from command.data
+        # command.data structure is like: {"HYPERTENSION_DATE": "12/04/2025", ...}
+        screening_dates = {}
+
+        # Map of our question codes to screening names
+        question_code_map = {
+            "HYPERTENSION_DATE": "hypertension",
+            "DEPRESSION_DATE": "depression",
+            "ALCOHOL_DATE": "alcohol",
+            "COLORECTAL_DATE": "colorectal",
+            "BREAST_DATE": "breast",
+            "CERVICAL_DATE": "cervical",
+            "DIABETES_DATE": "diabetes",
+            "LUNG_DATE": "lung",
+            "STATIN_DATE": "statin"
+        }
+
+        # Extract dates from command.data
+        for question_code, screening_name in question_code_map.items():
+            if question_code in command.data:
+                date_str = command.data[question_code]
+                if date_str:
+                    parsed_date = self._parse_date_string(date_str)
+                    if parsed_date:
+                        screening_dates[screening_name] = parsed_date
+                        log.info(f"Parsed {screening_name} screening date: {parsed_date}")
+
+        if screening_dates:
+            log.info(f"Successfully parsed {len(screening_dates)} screening dates from questionnaire")
+            # TODO: Store these dates as observations or in patient metadata
+            # For now, they're logged and can be used for verification
+        else:
+            log.info("No valid screening dates found in questionnaire responses")
 
         return []
 
