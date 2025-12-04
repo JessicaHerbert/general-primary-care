@@ -2,86 +2,95 @@ name: Preventive Care Screening Dates
 form_type: QUES
 code_system: INTERNAL
 code: PREVENTIVE_CARE_DATES
-can_originate_in_charting: TRUE
+can_originate_in_charting: true
 prologue: Enter the dates of previous preventive care screenings if known. Leave blank if not applicable or unknown.
 questions:
-  - code_system: INTERNAL
+  - content: "Hypertension Screening Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: HYPERTENSION_DATE
-    content: Hypertension Screening Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: HYPERTENSION_DATE_TXT
+        value: ""
 
-  - code_system: INTERNAL
+  - content: "Depression Screening Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: DEPRESSION_DATE
-    content: Depression Screening Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: DEPRESSION_DATE_TXT
+        value: ""
 
-  - code_system: INTERNAL
+  - content: "Alcohol Use Screening Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: ALCOHOL_DATE
-    content: Alcohol Use Screening Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: ALCOHOL_DATE_TXT
+        value: ""
 
-  - code_system: INTERNAL
+  - content: "Colorectal Cancer Screening Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: COLORECTAL_DATE
-    content: Colorectal Cancer Screening Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: COLORECTAL_DATE_TXT
+        value: ""
 
-  - code_system: INTERNAL
+  - content: "Breast Cancer Screening Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: BREAST_DATE
-    content: Breast Cancer Screening Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: BREAST_DATE_TXT
+        value: ""
 
-  - code_system: INTERNAL
+  - content: "Cervical Cancer Screening Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: CERVICAL_DATE
-    content: Cervical Cancer Screening Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: CERVICAL_DATE_TXT
+        value: ""
 
-  - code_system: INTERNAL
+  - content: "Diabetes Screening Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: DIABETES_DATE
-    content: Diabetes Screening Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: DIABETES_DATE_TXT
+        value: ""
 
-  - code_system: INTERNAL
+  - content: "Lung Cancer Screening Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: LUNG_DATE
-    content: Lung Cancer Screening Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: LUNG_DATE_TXT
+        value: ""
 
-  - code_system: INTERNAL
+  - content: "Statin/CVD Prevention Date (MM/DD/YYYY)"
+    code_system: INTERNAL
     code: STATIN_DATE
-    content: Statin/CVD Prevention Date (MM/DD/YYYY)
     responses_code_system: INTERNAL
     responses_type: TXT
     responses:
-      - name: TXT
+      - name: "Date of screening"
         code: STATIN_DATE_TXT
+        value: ""
