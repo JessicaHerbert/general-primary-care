@@ -1,0 +1,323 @@
+what skills do you have
+
+---
+
+/new-plugin 
+
+---
+
+/new-plugin 
+
+---
+
+here is an example ### Demographics
+
+| Field | Value |
+|-------|-------|
+| `firstName` | T'Challa |
+| `lastName` | Udaku |
+| `birthDate` | 1985-02-16 |
+| `sex` | Male |
+| `gender` | Man |
+| `address` | 1 Royal Palace, Birnin Zana, Wakanda 00001 |
+| `email` | tchalla@wakanda.gov |
+| `phone` | 555-555-0199 |
+| `preferredLanguage` | English |
+| `maritalStatus` | Single |
+| `race` | Black or African American |
+| `ethnicity` | Not Hispanic or Latino |
+
+### Conditions
+
+| Condition | ICD-10 | SNOMED |
+|-----------|--------|--------|
+| Old gunshot wound, healed | T14.8 | 283545005 |
+| PTSD | F43.10 | 47505003 |
+
+### Medications
+
+| Medication | RxNorm | Sig |
+|------------|--------|-----|
+| Sertraline 50mg tablet | 312940 | Take 1 tablet daily |
+| Melatonin 5mg tablet | 1101937 | Take 1 tablet at bedtime as needed |
+
+### Past Surgical History
+
+| Procedure | SNOMED | Date |
+|-----------|--------|------|
+| Exploratory laparotomy | 11466000 | 2016-06-20 |
+| Bullet removal, abdomen | 287809003 | 2016-06-20 |
+
+### Immunizations
+
+| Vaccine | CVX | Date |
+|---------|-----|------|
+| Hepatitis B | 43 | 2015-01-10 |
+| Tetanus toxoid | 112 | 2020-03-15 |
+
+
+---
+
+it does not accept via API - I need to have a text box to enter one or more patient information into
+
+---
+
+yes
+
+---
+
+/deploy 
+
+---
+
+/deploy 
+
+---
+
+it doesn't seem to like the markdown - should we do json?
+
+---
+
+yes
+
+---
+
+It still says ❌ Error: Unexpected token '<', " with this payload  {
+    "firstName": "Hermione",
+    "lastName": "Granger",
+    "birthDate": "1979-09-19",
+    "sex": "Female",
+    "gender": "Woman",
+    "address": "42 Hampstead Garden, London, UK NW3 2PT",
+    "email": "hermione.granger@ministry.gov.uk",
+    "phone": "+44-20-7946-0958",
+    "preferredLanguage": "English",
+    "maritalStatus": "Married",
+    "race": "White",
+    "ethnicity": "Not Hispanic or Latino",
+    "conditions": [
+      {
+        "condition": "Generalized anxiety disorder",
+        "icd10": "F41.1",
+        "snomed": "21897009"
+      },
+      {
+        "condition": "Tension-type headache",
+        "icd10": "G44.209",
+        "snomed": "398057008"
+      }
+    ],
+    "medications": [
+      {
+        "medication": "Buspirone 10mg tablet",
+        "rxnorm": "104894",
+        "sig": "Take 1 tablet twice daily"
+      },
+      {
+        "medication": "Ibuprofen 400mg tablet",
+        "rxnorm": "310965",
+        "sig": "Take 1 tablet every 6 hours as needed for headache"
+      }
+    ],
+    "pastSurgicalHistory": [
+      {
+        "procedure": "Dental restoration",
+        "snomed": "234713009",
+        "date": "1992-08-15"
+      }
+    ],
+    "immunizations": [
+      {
+        "vaccine": "Tdap",
+        "cvx": "115",
+        "date": "2019-09-01"
+      },
+      {
+        "vaccine": "Influenza, injectable",
+        "cvx": "141",
+        "date": "2024-10-15"
+      }
+    ]
+  }
+
+---
+
+stills ays ❌ Error: Unexpected token '<', "
+
+---
+
+❌ Provided credentials are invalid
+
+---
+
+❌ All patients failed validation with this payload  {
+    "firstName": "Hermione",
+    "lastName": "Granger",
+    "birthDate": "1979-09-19",
+    "sex": "Female",
+    "gender": "Woman",
+    "address": "42 Hampstead Garden, London, UK NW3 2PT",
+    "email": "hermione.granger@ministry.gov.uk",
+    "phone": "+44-20-7946-0958",
+    "preferredLanguage": "English",
+    "maritalStatus": "Married",
+    "race": "White",
+    "ethnicity": "Not Hispanic or Latino",
+    "conditions": [
+      {
+        "condition": "Generalized anxiety disorder",
+        "icd10": "F41.1",
+        "snomed": "21897009"
+      },
+      {
+        "condition": "Tension-type headache",
+        "icd10": "G44.209",
+        "snomed": "398057008"
+      }
+    ],
+    "medications": [
+      {
+        "medication": "Buspirone 10mg tablet",
+        "rxnorm": "104894",
+        "sig": "Take 1 tablet twice daily"
+      },
+      {
+        "medication": "Ibuprofen 400mg tablet",
+        "rxnorm": "310965",
+        "sig": "Take 1 tablet every 6 hours as needed for headache"
+      }
+    ],
+    "pastSurgicalHistory": [
+      {
+        "procedure": "Dental restoration",
+        "snomed": "234713009",
+        "date": "1992-08-15"
+      }
+    ],
+    "immunizations": [
+      {
+        "vaccine": "Tdap",
+        "cvx": "115",
+        "date": "2019-09-01"
+      },
+      {
+        "vaccine": "Influenza, injectable",
+        "cvx": "141",
+        "date": "2024-10-15"
+      }
+    ]
+  }
+
+---
+
+yes it gave me a green approval but did not create the patient
+
+---
+
+why doidm ✅ ✅ Hermione Granger: Created patient (Note: 2 condition(s) not yet imported, 2 medication(s) not yet imported, 2 immunization(s) not yet imported, 1 surgical history record(s) not yet imported)
+
+---
+
+yes I would like the data import too - I also need to know the schema of how the json should be formatted
+
+---
+
+you can use chart review note type to include all of the information
+
+---
+
+I don't think we should use note type ID we shoudl use the code and system http://snomed.info/sct  107728002.  I set the location ID and added the code in the note type id secret   
+
+---
+
+what's wrong with this {
+    "demographics": {
+      "firstName": "Hermione",
+      "lastName": "Weasley",
+      "birthDate": "1978-09-19",
+      "sex": "Female",
+      "gender": "Woman",
+      "address": "42 Hampstead Garden, London, UK NW3 2PT",
+      "email": "hermione.granger@ministry.com",
+      "phone": "111-946-0958",
+      "preferredLanguage": "English",
+      "maritalStatus": "Married",
+      "race": "White",
+      "ethnicity": "Not Hispanic or Latino"
+    },
+    "conditions": [
+      {
+        "condition": "Generalized anxiety disorder",
+        "icd10": "F41.1",
+        "snomed": "21897009"
+      },
+      {
+        "condition": "Tension-type headache",
+        "icd10": "G44.209",
+        "snomed": "398057008"
+      }
+    ],
+    "medications": [
+      {
+        "medication": "Buspirone 10mg tablet",
+        "rxnorm": "104894",
+        "sig": "Take 1 tablet twice daily"
+      },
+      {
+        "medication": "Ibuprofen 400mg tablet",
+        "rxnorm": "310965",
+        "sig": "Take 1 tablet every 6 hours as needed for headache"
+      }
+    ],
+    "surgical_history": [
+      {
+        "procedure": "Dental restoration",
+        "snomed": "234713009",
+        "date": "1992-08-15"
+      }
+    ],
+    "immunizations": [
+      {
+        "vaccine": "Tdap",
+        "cvx": "115",
+        "date": "2019-09-01"
+      },
+      {
+        "vaccine": "Influenza, injectable",
+        "cvx": "141",
+        "date": "2024-10-15"
+      }
+    ]
+  }
+
+---
+
+it says thereis an error ❌ Error: Failed to execute 'json' on 'Response': Unexpected end of JSON input
+
+---
+
+✅ ❌ Hermione Weasley: Failed to create patient - 'Patient' object has no attribute 'instance_id'
+
+---
+
+Ok - lets do the 2 phase import
+
+---
+
+✅ ✅ Hermione Weasley: Created patient (Note: clinical data not imported - patient may not exist yet) (Note: 2 immunization(s) not yet supported)
+
+---
+
+now the patient was created twice
+
+---
+
+it looks like it's correct but it didnt actually create the information
+
+---
+
+no note was created what format shoudl the note type id be?
+
+---
+
+There is no uuid to that note type - you need to change to use the code
