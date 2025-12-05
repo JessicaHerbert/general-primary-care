@@ -4,12 +4,7 @@
     "name": "preventive_care_tracker",
     "description": "Track and manage preventive care screenings based on USPSTF guidelines",
     "components": {
-        "protocols": [
-            {
-                "class": "preventive_care_tracker.protocols.questionnaire_handler:PreventiveCareQuestionnaireHandler",
-                "description": "Handles manual screening date entries from questionnaire submissions"
-            }
-        ],
+        "protocols": [],
         "applications": [
             {
                 "class": "preventive_care_tracker.applications.simple_preventive_care_app:PreventiveCareTrackerApp",
