@@ -1,15 +1,12 @@
-"""Simplified Preventive Care Tracker Application - All logic inline."""
+"""Preventive Care Tracker Application - Questionnaire-based screening tracker."""
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from typing import Optional
 from canvas_sdk.effects import Effect
 from canvas_sdk.effects.launch_modal import LaunchModalEffect
 from canvas_sdk.handlers.application import Application
 from canvas_sdk.v1.data.patient import Patient
-from canvas_sdk.v1.data.observation import Observation
-from canvas_sdk.v1.data.imaging import ImagingReport
-from canvas_sdk.v1.data.condition import Condition
-from canvas_sdk.v1.data.medication import Medication
+from canvas_sdk.v1.data.command import Command
 from logger import log
 
 
@@ -66,271 +63,232 @@ class PreventiveCareTrackerApp(Application):
             ).apply()
 
     def _evaluate_screenings(self, patient: Patient, age: Optional[int], sex: Optional[str]) -> list:
-        """Evaluate all preventive care screenings for this patient."""
+        """Get most recent screening dates from all questionnaire submissions."""
+        # Get the most recent date for each screening across ALL questionnaires
+        screening_dates = self._get_latest_screening_dates(patient)
+
+        # Mapping of question codes to display names
+        screening_config = [
+            ("HYPERTENSION_DATE", "Hypertension Screening"),
+            ("DEPRESSION_DATE", "Depression Screening"),
+            ("ALCOHOL_DATE", "Alcohol Use Screening"),
+            ("COLORECTAL_DATE", "Colorectal Cancer Screening"),
+            ("BREAST_DATE", "Breast Cancer Screening"),
+            ("CERVICAL_DATE", "Cervical Cancer Screening"),
+            ("DIABETES_DATE", "Diabetes Screening"),
+            ("LUNG_DATE", "Lung Cancer Screening"),
+            ("STATIN_DATE", "Statin/CVD Prevention"),
+        ]
+
         screenings = []
-
-        # 1. Hypertension Screening (adults 18+)
-        if age and age >= 18:
-            last_bp = self._get_last_observation(patient, ["8480-6", "8462-4", "85354-9"], "MANUAL_HYPERTENSION_SCREENING")
+        for question_code, display_name in screening_config:
+            date_value = screening_dates.get(question_code) if screening_dates else None
             screenings.append({
-                "name": "Hypertension Screening",
-                "status": "up-to-date" if last_bp and self._within_days(last_bp, 365) else "overdue",
-                "last_date": last_bp.strftime("%m/%d/%Y") if last_bp else "Never",
-                "grade": "A",
-                "applicable": True
+                "name": display_name,
+                "last_date": date_value if date_value else "Never"
             })
-        else:
-            screenings.append({
-                "name": "Hypertension Screening",
-                "status": "not-applicable",
-                "last_date": "N/A",
-                "grade": "A",
-                "applicable": False
-            })
-
-        # 2. Depression Screening (adults 18+)
-        if age and age >= 18:
-            last_phq = self._get_last_observation(patient, ["55758-7", "44249-1", "73831-0"], "MANUAL_DEPRESSION_SCREENING")
-            screenings.append({
-                "name": "Depression Screening",
-                "status": "up-to-date" if last_phq and self._within_days(last_phq, 365) else "overdue",
-                "last_date": last_phq.strftime("%m/%d/%Y") if last_phq else "Never",
-                "grade": "B",
-                "applicable": True
-            })
-        else:
-            screenings.append({
-                "name": "Depression Screening",
-                "status": "not-applicable",
-                "last_date": "N/A",
-                "grade": "B",
-                "applicable": False
-            })
-
-        # 3. Alcohol Use Screening (adults 18+)
-        if age and age >= 18:
-            last_audit = self._get_last_observation(patient, ["72109-2", "75626-2"], "MANUAL_ALCOHOL_SCREENING")
-            screenings.append({
-                "name": "Alcohol Use Screening",
-                "status": "up-to-date" if last_audit and self._within_days(last_audit, 365) else "overdue",
-                "last_date": last_audit.strftime("%m/%d/%Y") if last_audit else "Never",
-                "grade": "B",
-                "applicable": True
-            })
-        else:
-            screenings.append({
-                "name": "Alcohol Use Screening",
-                "status": "not-applicable",
-                "last_date": "N/A",
-                "grade": "B",
-                "applicable": False
-            })
-
-        # 4. Colorectal Cancer Screening (ages 45-75)
-        if age and 45 <= age <= 75:
-            last_colo = self._get_last_observation(patient, ["29771-3", "56490-6", "57905-2"], "MANUAL_COLORECTAL_SCREENING")
-            screenings.append({
-                "name": "Colorectal Cancer Screening",
-                "status": "up-to-date" if last_colo and self._within_days(last_colo, 365) else "overdue",
-                "last_date": last_colo.strftime("%m/%d/%Y") if last_colo else "Never",
-                "grade": "A",
-                "applicable": True
-            })
-        else:
-            screenings.append({
-                "name": "Colorectal Cancer Screening",
-                "status": "not-applicable",
-                "last_date": "N/A",
-                "grade": "A",
-                "applicable": False
-            })
-
-        # 5. Breast Cancer Screening (women 40-74)
-        if age and 40 <= age <= 74 and sex and sex.lower() == "female":
-            last_mammo = self._get_last_imaging(patient, "mammogr")
-            screenings.append({
-                "name": "Breast Cancer Screening",
-                "status": "up-to-date" if last_mammo and self._within_days(last_mammo, 730) else "overdue",
-                "last_date": last_mammo.strftime("%m/%d/%Y") if last_mammo else "Never",
-                "grade": "B",
-                "applicable": True
-            })
-        else:
-            screenings.append({
-                "name": "Breast Cancer Screening",
-                "status": "not-applicable",
-                "last_date": "N/A",
-                "grade": "B",
-                "applicable": False
-            })
-
-        # 6. Cervical Cancer Screening (women 21-65)
-        if age and 21 <= age <= 65 and sex and sex.lower() == "female":
-            last_pap = self._get_last_observation(patient, ["19762-4", "10524-7", "21440-3"], "MANUAL_CERVICAL_SCREENING")
-            screenings.append({
-                "name": "Cervical Cancer Screening",
-                "status": "up-to-date" if last_pap and self._within_days(last_pap, 1095) else "overdue",
-                "last_date": last_pap.strftime("%m/%d/%Y") if last_pap else "Never",
-                "grade": "A",
-                "applicable": True
-            })
-        else:
-            screenings.append({
-                "name": "Cervical Cancer Screening",
-                "status": "not-applicable",
-                "last_date": "N/A",
-                "grade": "A",
-                "applicable": False
-            })
-
-        # 7. Diabetes Screening (ages 35-70) - simplified without BMI check
-        if age and 35 <= age <= 70:
-            last_a1c = self._get_last_observation(patient, ["4548-4", "1558-6", "2345-7"], "MANUAL_DIABETES_SCREENING")
-            screenings.append({
-                "name": "Diabetes Screening",
-                "status": "up-to-date" if last_a1c and self._within_days(last_a1c, 1095) else "overdue",
-                "last_date": last_a1c.strftime("%m/%d/%Y") if last_a1c else "Never",
-                "grade": "B",
-                "applicable": True
-            })
-        else:
-            screenings.append({
-                "name": "Diabetes Screening",
-                "status": "not-applicable",
-                "last_date": "N/A",
-                "grade": "B",
-                "applicable": False
-            })
-
-        # 8. Lung Cancer Screening (ages 50-80) - simplified without smoking check
-        screenings.append({
-            "name": "Lung Cancer Screening",
-            "status": "not-applicable",
-            "last_date": "N/A",
-            "grade": "B",
-            "applicable": False,
-            "notes": "Requires smoking history"
-        })
-
-        # 9. Statin for CVD Prevention (ages 40-75) - simplified
-        screenings.append({
-            "name": "Statin for CVD Prevention",
-            "status": "not-applicable",
-            "last_date": "N/A",
-            "grade": "B",
-            "applicable": False,
-            "notes": "Requires risk assessment"
-        })
 
         return screenings
 
-    def _get_last_observation(self, patient: Patient, loinc_codes: list, internal_code: Optional[str] = None) -> Optional[date]:
-        """Get the most recent observation date for any of the given LOINC codes or INTERNAL code."""
+    def _get_latest_screening_dates(self, patient: Patient) -> Optional[dict]:
+        """Get the most recent date for each screening type across all questionnaire submissions.
+
+        Returns:
+            Dictionary mapping question codes to the most recent date string for each screening
+        """
         try:
-            observations = Observation.objects.filter(patient=patient).order_by('-effective_datetime')
-            for obs in observations:
-                if hasattr(obs, 'codings'):
-                    for coding in obs.codings.all():
-                        # Check LOINC codes
-                        if coding.code in loinc_codes:
-                            if obs.effective_datetime:
-                                return obs.effective_datetime.date() if hasattr(obs.effective_datetime, 'date') else obs.effective_datetime
-                        # Also check for our manual entry INTERNAL code
-                        if internal_code and coding.code == internal_code and coding.system == "INTERNAL":
-                            if obs.effective_datetime:
-                                return obs.effective_datetime.date() if hasattr(obs.effective_datetime, 'date') else obs.effective_datetime
-            return None
+            # Query for all commands for this patient, then filter by questionnaire name
+            commands = Command.objects.filter(
+                patient=patient
+            ).order_by('-created')
+
+            # Filter to only preventive care questionnaires
+            preventive_care_commands = []
+            for cmd in commands:
+                if cmd.data and 'questionnaire' in cmd.data:
+                    quest_name = cmd.data.get('questionnaire', {}).get('text', '')
+                    if quest_name == 'Preventive Care Screening Dates':
+                        preventive_care_commands.append(cmd)
+
+            if not preventive_care_commands:
+                return None
+
+            # Dictionary to track the most recent date for each screening type
+            # Key: question_code, Value: (date object, formatted_date string)
+            most_recent_dates = {}
+
+            # Iterate through ALL questionnaires to find the most recent date for each screening
+            for cmd in preventive_care_commands:
+                if not cmd.data:
+                    continue
+
+                # Get questionnaire metadata to map question IDs to codes
+                if 'questionnaire' in cmd.data and 'extra' in cmd.data['questionnaire']:
+                    questions = cmd.data['questionnaire']['extra'].get('questions', [])
+
+                    for question in questions:
+                        question_pk = question.get('pk')
+                        question_code = question.get('coding', {}).get('code')
+                        question_key = f"question-{question_pk}"
+
+                        if question_key in cmd.data:
+                            date_str = cmd.data[question_key]
+                            if date_str:  # Only process non-empty dates
+                                # Parse the date
+                                parsed_date = self._parse_date_string(date_str)
+                                if parsed_date:
+                                    formatted_date = parsed_date.strftime("%m/%d/%Y")
+
+                                    # Check if this is the most recent date for this screening type
+                                    if question_code not in most_recent_dates:
+                                        most_recent_dates[question_code] = (parsed_date, formatted_date)
+                                    else:
+                                        existing_date, existing_formatted = most_recent_dates[question_code]
+                                        if parsed_date > existing_date:
+                                            most_recent_dates[question_code] = (parsed_date, formatted_date)
+
+            # Convert to result dictionary with just the formatted dates
+            result = {code: formatted_date for code, (_, formatted_date) in most_recent_dates.items()}
+            return result if result else None
+
         except Exception as e:
-            log.error(f"Error getting observations: {str(e)}")
+            log.error(f"Error getting latest screening dates: {str(e)}")
+            log.error(f"Exception type: {type(e).__name__}")
             return None
 
-    def _get_last_imaging(self, patient: Patient, imaging_type: str) -> Optional[date]:
-        """Get the most recent imaging report date."""
-        try:
-            reports = ImagingReport.objects.filter(patient=patient).order_by('-result_date')
-            for report in reports:
-                if report.name and imaging_type.lower() in report.name.lower():
-                    if report.result_date:
-                        return report.result_date.date() if hasattr(report.result_date, 'date') else report.result_date
-            return None
-        except Exception as e:
-            log.error(f"Error getting imaging reports: {str(e)}")
+    def _parse_date_string(self, date_str: str) -> Optional[date]:
+        """Parse a date string in various formats."""
+        if not date_str:
             return None
 
-    def _within_days(self, check_date: date, days: int) -> bool:
-        """Check if a date is within the specified number of days from today."""
-        if not check_date:
-            return False
-        today = date.today()
-        delta = today - check_date
-        return delta.days <= days
+        date_str = date_str.strip()
+
+        # Try common formats
+        formats = [
+            "%m/%d/%Y",     # 12/04/2025
+            "%m/%d/%y",     # 12/04/25
+            "%Y-%m-%d",     # 2025-12-04
+            "%m-%d-%Y",     # 12-04-2025
+            "%m/%Y",        # 12/2025 (month/year only)
+        ]
+
+        for fmt in formats:
+            try:
+                parsed_date = datetime.strptime(date_str, fmt)
+                return parsed_date.date()
+            except ValueError:
+                continue
+
+        log.warning(f"Could not parse date string: {date_str}")
+        return None
 
     def _render_html(self, patient: Patient, age: Optional[int], screenings: list) -> str:
-        """Render the HTML interface."""
-        # Filter out not-applicable screenings
-        applicable_screenings = [s for s in screenings if s["applicable"]]
-
-        # Count status - manual counting since sum() is not allowed in sandbox
-        up_to_date = 0
-        overdue = 0
-        for s in applicable_screenings:
-            if s["status"] == "up-to-date":
-                up_to_date += 1
-            elif s["status"] == "overdue":
-                overdue += 1
-
-        # Generate table rows
+        """Render the HTML interface with Canvas branding."""
+        # Generate table rows with alternating background
         rows = ""
-        for screening in applicable_screenings:
-            status_icon = {
-                "up-to-date": "✓",
-                "overdue": "⚠️",
-                "not-applicable": "—"
-            }.get(screening["status"], "?")
+        for idx, screening in enumerate(screenings):
+            bg_color = "#f8f9fa" if idx % 2 == 0 else "#ffffff"
+            date_display = screening["last_date"]
+            date_color = "#6c757d" if date_display == "Never" else "#212529"
 
             rows += f"""
-            <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{screening["name"]}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">{status_icon}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{screening["last_date"]}</td>
+            <tr style="background-color: {bg_color};">
+                <td style="padding: 14px 16px; color: #212529; font-size: 14px; font-weight: 500;">{screening["name"]}</td>
+                <td style="padding: 14px 16px; color: {date_color}; font-size: 14px;">{date_display}</td>
             </tr>
             """
 
         html = f"""
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2>Preventive Care Tracker</h2>
-            <p><strong>Patient:</strong> {patient.first_name} {patient.last_name} | <strong>Age:</strong> {age if age else "Unknown"}</p>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    padding: 24px; background-color: #f8f9fa; min-height: 100vh;">
 
-            <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 8px;">
-                <h3>Summary</h3>
-                <p>✓ Up-to-date: {up_to_date} | ⚠️ Overdue: {overdue}</p>
+            <!-- Header Section -->
+            <div style="background: linear-gradient(135deg, #1b9aaa 0%, #16808e 100%);
+                        padding: 24px 28px;
+                        border-radius: 8px;
+                        margin-bottom: 24px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 8px 0;
+                           color: #ffffff;
+                           font-size: 24px;
+                           font-weight: 600;
+                           letter-spacing: -0.5px;">
+                    Preventive Care Tracker
+                </h2>
+                <p style="margin: 0;
+                          color: rgba(255,255,255,0.9);
+                          font-size: 14px;
+                          font-weight: 400;">
+                    <strong style="font-weight: 600;">{patient.first_name} {patient.last_name}</strong>
+                    <span style="margin: 0 8px; opacity: 0.7;">•</span>
+                    <span>Age: {age if age else "Unknown"}</span>
+                </p>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                <thead>
-                    <tr style="background-color: #f0f0f0;">
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Screening</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Status</th>
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Last Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows}
-                </tbody>
-            </table>
+            <!-- Screenings Table -->
+            <div style="background-color: #ffffff;
+                        border-radius: 8px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                        overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: #e9ecef; border-bottom: 2px solid #dee2e6;">
+                            <th style="padding: 14px 16px;
+                                       text-align: left;
+                                       color: #495057;
+                                       font-size: 13px;
+                                       font-weight: 600;
+                                       text-transform: uppercase;
+                                       letter-spacing: 0.5px;">
+                                Screening Type
+                            </th>
+                            <th style="padding: 14px 16px;
+                                       text-align: left;
+                                       color: #495057;
+                                       font-size: 13px;
+                                       font-weight: 600;
+                                       text-transform: uppercase;
+                                       letter-spacing: 0.5px;">
+                                Last Completed
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows}
+                    </tbody>
+                </table>
+            </div>
 
-            <p style="margin-top: 20px; font-size: 12px; color: #666;">
-                <em>Note: This is a simplified version - full risk assessment and smoking history checks coming soon.</em>
-            </p>
+            <!-- Footer Note -->
+            <div style="margin-top: 20px; padding: 12px; color: #6c757d; font-size: 13px; text-align: center;">
+                Showing most recent date for each screening type
+            </div>
         </div>
         """
         return html
 
     def _render_error(self, message: str) -> str:
-        """Render an error message."""
+        """Render an error message with Canvas branding."""
         return f"""
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2 style="color: #d32f2f;">Error</h2>
-            <p>{message}</p>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    padding: 24px; background-color: #f8f9fa; min-height: 100vh;">
+            <div style="background-color: #ffffff;
+                        border-left: 4px solid #dc3545;
+                        border-radius: 8px;
+                        padding: 24px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                <h2 style="margin: 0 0 12px 0;
+                           color: #dc3545;
+                           font-size: 20px;
+                           font-weight: 600;">
+                    Error
+                </h2>
+                <p style="margin: 0;
+                          color: #495057;
+                          font-size: 14px;
+                          line-height: 1.5;">
+                    {message}
+                </p>
+            </div>
         </div>
         """
