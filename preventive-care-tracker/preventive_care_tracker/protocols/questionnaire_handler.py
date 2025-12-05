@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from canvas_sdk.effects import Effect
+from canvas_sdk.effects.observation import CreateObservation
 from canvas_sdk.events import EventType
 from canvas_sdk.protocols import BaseProtocol
 from canvas_sdk.v1.data.command import Command
@@ -95,12 +96,43 @@ class PreventiveCareQuestionnaireHandler(BaseProtocol):
 
         if screening_dates:
             log.info(f"Successfully parsed {len(screening_dates)} screening dates from questionnaire")
-            # TODO: Store these dates as observations or in patient metadata
-            # For now, they're logged and can be used for verification
+
+            # Create observations for each screening date
+            effects = []
+            screening_to_code_map = {
+                "hypertension": "MANUAL_HYPERTENSION_SCREENING",
+                "depression": "MANUAL_DEPRESSION_SCREENING",
+                "alcohol": "MANUAL_ALCOHOL_SCREENING",
+                "colorectal": "MANUAL_COLORECTAL_SCREENING",
+                "breast": "MANUAL_BREAST_SCREENING",
+                "cervical": "MANUAL_CERVICAL_SCREENING",
+                "diabetes": "MANUAL_DIABETES_SCREENING",
+                "lung": "MANUAL_LUNG_SCREENING",
+                "statin": "MANUAL_STATIN_SCREENING"
+            }
+
+            for screening_name, screening_date in screening_dates.items():
+                if screening_name in screening_to_code_map:
+                    code = screening_to_code_map[screening_name]
+                    try:
+                        # Create observation effect
+                        effect = CreateObservation(
+                            patient_key=command.patient,
+                            code=code,
+                            code_system="INTERNAL",
+                            display=f"Manual {screening_name} screening date entry",
+                            effective_datetime=screening_date,
+                            value_string=f"{screening_name.capitalize()} screening performed"
+                        )
+                        effects.append(effect)
+                        log.info(f"Created observation for {screening_name} with date {screening_date}")
+                    except Exception as e:
+                        log.error(f"Error creating observation for {screening_name}: {str(e)}")
+
+            return effects
         else:
             log.info("No valid screening dates found in questionnaire responses")
-
-        return []
+            return []
 
     def _parse_questionnaire_responses(self, interview_data: dict) -> dict:
         """Parse questionnaire responses to extract screening dates.

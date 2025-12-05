@@ -71,7 +71,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 1. Hypertension Screening (adults 18+)
         if age and age >= 18:
-            last_bp = self._get_last_observation(patient, ["8480-6", "8462-4", "85354-9"])
+            last_bp = self._get_last_observation(patient, ["8480-6", "8462-4", "85354-9"], "MANUAL_HYPERTENSION_SCREENING")
             screenings.append({
                 "name": "Hypertension Screening",
                 "status": "up-to-date" if last_bp and self._within_days(last_bp, 365) else "overdue",
@@ -90,7 +90,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 2. Depression Screening (adults 18+)
         if age and age >= 18:
-            last_phq = self._get_last_observation(patient, ["55758-7", "44249-1", "73831-0"])
+            last_phq = self._get_last_observation(patient, ["55758-7", "44249-1", "73831-0"], "MANUAL_DEPRESSION_SCREENING")
             screenings.append({
                 "name": "Depression Screening",
                 "status": "up-to-date" if last_phq and self._within_days(last_phq, 365) else "overdue",
@@ -109,7 +109,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 3. Alcohol Use Screening (adults 18+)
         if age and age >= 18:
-            last_audit = self._get_last_observation(patient, ["72109-2", "75626-2"])
+            last_audit = self._get_last_observation(patient, ["72109-2", "75626-2"], "MANUAL_ALCOHOL_SCREENING")
             screenings.append({
                 "name": "Alcohol Use Screening",
                 "status": "up-to-date" if last_audit and self._within_days(last_audit, 365) else "overdue",
@@ -128,7 +128,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 4. Colorectal Cancer Screening (ages 45-75)
         if age and 45 <= age <= 75:
-            last_colo = self._get_last_observation(patient, ["29771-3", "56490-6", "57905-2"])
+            last_colo = self._get_last_observation(patient, ["29771-3", "56490-6", "57905-2"], "MANUAL_COLORECTAL_SCREENING")
             screenings.append({
                 "name": "Colorectal Cancer Screening",
                 "status": "up-to-date" if last_colo and self._within_days(last_colo, 365) else "overdue",
@@ -166,7 +166,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 6. Cervical Cancer Screening (women 21-65)
         if age and 21 <= age <= 65 and sex and sex.lower() == "female":
-            last_pap = self._get_last_observation(patient, ["19762-4", "10524-7", "21440-3"])
+            last_pap = self._get_last_observation(patient, ["19762-4", "10524-7", "21440-3"], "MANUAL_CERVICAL_SCREENING")
             screenings.append({
                 "name": "Cervical Cancer Screening",
                 "status": "up-to-date" if last_pap and self._within_days(last_pap, 1095) else "overdue",
@@ -185,7 +185,7 @@ class PreventiveCareTrackerApp(Application):
 
         # 7. Diabetes Screening (ages 35-70) - simplified without BMI check
         if age and 35 <= age <= 70:
-            last_a1c = self._get_last_observation(patient, ["4548-4", "1558-6", "2345-7"])
+            last_a1c = self._get_last_observation(patient, ["4548-4", "1558-6", "2345-7"], "MANUAL_DIABETES_SCREENING")
             screenings.append({
                 "name": "Diabetes Screening",
                 "status": "up-to-date" if last_a1c and self._within_days(last_a1c, 1095) else "overdue",
@@ -224,14 +224,19 @@ class PreventiveCareTrackerApp(Application):
 
         return screenings
 
-    def _get_last_observation(self, patient: Patient, loinc_codes: list) -> Optional[date]:
-        """Get the most recent observation date for any of the given LOINC codes."""
+    def _get_last_observation(self, patient: Patient, loinc_codes: list, internal_code: Optional[str] = None) -> Optional[date]:
+        """Get the most recent observation date for any of the given LOINC codes or INTERNAL code."""
         try:
             observations = Observation.objects.filter(patient=patient).order_by('-effective_datetime')
             for obs in observations:
                 if hasattr(obs, 'codings'):
                     for coding in obs.codings.all():
+                        # Check LOINC codes
                         if coding.code in loinc_codes:
+                            if obs.effective_datetime:
+                                return obs.effective_datetime.date() if hasattr(obs.effective_datetime, 'date') else obs.effective_datetime
+                        # Also check for our manual entry INTERNAL code
+                        if internal_code and coding.code == internal_code and coding.system == "INTERNAL":
                             if obs.effective_datetime:
                                 return obs.effective_datetime.date() if hasattr(obs.effective_datetime, 'date') else obs.effective_datetime
             return None
